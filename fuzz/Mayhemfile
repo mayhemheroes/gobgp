@@ -1,0 +1,8 @@
+project: golang
+target: bgp
+image: debian:bullseye
+duration: 3600
+cmds:
+  - cmd: /fuzz_parse_bgp_message
+    libfuzzer: true
+    sanitizer: true
