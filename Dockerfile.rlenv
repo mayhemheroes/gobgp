@@ -1,0 +1,46 @@
+FROM gcr.io/oss-fuzz-base/base-builder-go
+
+# Install any additional dependencies
+# (base-builder-go already includes Go, libFuzzer, and standard build tools)
+
+# Set up environment variables for fuzzing
+ENV FUZZING_LANGUAGE=go
+ENV SANITIZER=address
+ENV FUZZING_ENGINE=libfuzzer
+ENV ARCHITECTURE=x86_64
+ENV PROJECT_NAME=gobgp
+
+# Copy source code to standardized location
+COPY . /rlenv/source/gobgp
+
+# Set working directory
+WORKDIR /rlenv/source/gobgp
+
+# Install Go dependencies
+RUN go get github.com/AdamKorcz/go-118-fuzz-build/testing
+
+# Compile libfuzzer support
+RUN compile_libfuzzer
+
+# Apply sed fix to remove benchmark function
+RUN sed -i '/func BenchmarkNormalizeFlowSpecOpValues(/,/^}/ s/^/\/\//' pkg/packet/bgp/bgp_test.go
+
+# Set compiler flags
+ENV CXXFLAGS="-fsanitize=address -lpthread"
+
+# Build the fuzz target
+RUN compile_native_go_fuzzer $PWD/pkg/packet/bgp FuzzParseBGPMessage fuzz_parse_bgp_message || true
+
+# Fix the "reflect imported and not used" issue if it occurs
+RUN if [ -f pkg/packet/bgp/bgp_test.go_fuzz.go ]; then \
+      sed -i '/^[[:space:]]*"reflect"$/d' pkg/packet/bgp/bgp_test.go_fuzz.go; \
+    fi
+
+# Rebuild after fixing the reflect import issue
+RUN compile_native_go_fuzzer $PWD/pkg/packet/bgp FuzzParseBGPMessage fuzz_parse_bgp_message
+
+# Copy rlenv directory (contains test data and scripts) - this should be last
+COPY rlenv /rlenv
+
+# Default command
+CMD ["/out/fuzz_parse_bgp_message"]
