@@ -9,28 +9,28 @@ set -euo pipefail
 
 # Change to the source directory
 cd /rlenv/source/gobgp
-
-# Apply sed fix to remove benchmark function that interferes with fuzzing
-sed -i '/func BenchmarkNormalizeFlowSpecOpValues(/,/^}/ s/^/\/\//' pkg/packet/bgp/bgp_test.go
+rm -f *.a /out/fuzz_parse_bgp_message
 
 # Set compiler flags for address sanitizer
-export CXXFLAGS="-fsanitize=address -lpthread"
+export CXXFLAGS="${CXXFLAGS:-} -fsanitize=address -lpthread"
 
-# Build the fuzz target (first attempt - may fail due to reflect import issue)
+# First compilation attempt - may generate file with unused reflect import
+# Using || true to continue even if this fails
 compile_native_go_fuzzer $PWD/pkg/packet/bgp FuzzParseBGPMessage fuzz_parse_bgp_message || true
 
-# Fix the "reflect imported and not used" issue if the generated file exists
+# Fix the "reflect imported and not used" issue if it occurs
+# This is a known issue with go-118-fuzz-build (see CLAUDE.md)
 if [ -f pkg/packet/bgp/bgp_test.go_fuzz.go ]; then
-  sed -i '/^[[:space:]]*"reflect"$/d' pkg/packet/bgp/bgp_test.go_fuzz.go
+    sed -i '/^[[:space:]]*"reflect"$/d' pkg/packet/bgp/bgp_test.go_fuzz.go
 fi
 
 # Rebuild after fixing the reflect import issue
 compile_native_go_fuzzer $PWD/pkg/packet/bgp FuzzParseBGPMessage fuzz_parse_bgp_message
 
-# Verify build artifacts exist
+# Verify build artifact exists
 if [ ! -f /out/fuzz_parse_bgp_message ]; then
-    echo "Error: Build artifact /out/fuzz_parse_bgp_message not found"
+    echo "Error: Build artifact not found at /out/fuzz_parse_bgp_message"
     exit 1
 fi
 
-echo "Build completed successfully. Fuzzer binary at /out/fuzz_parse_bgp_message"
+echo "Build completed successfully: /out/fuzz_parse_bgp_message"
