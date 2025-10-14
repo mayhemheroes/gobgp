@@ -8,5 +8,5 @@
   "run_image_with_digest": "ghcr.io/mayhemheroes/gobgp@sha256:f81e8ea38fe18f7fe2c6e85742cadd39eeadf0230716f4860a5f1ae29076ed48",
   "git_repo_url": "git@github.com:mayhemheroes/gobgp.git",
   "git_revision": "e2ae6daf0ba28a900041fe9b0329e8b1fc67fde9",
-  "target_executable": null
+  "target_executable": "/out/fuzz_parse_bgp_message"
 }
