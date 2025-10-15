@@ -10,8 +10,19 @@ ENV FUZZING_ENGINE=libfuzzer
 ENV ARCHITECTURE=x86_64
 ENV PROJECT_NAME=gobgp
 
+# Make Go toolchain accessible to all users (not just root)
+# The base image installs Go under /root/.go/bin and /root/go/bin
+# We need to make these accessible for non-root users during validation
+ENV PATH="/root/.go/bin:/root/go/bin:${PATH}"
+# Set Go cache locations to use the build cache created during Docker build
+ENV GOCACHE="/root/.cache/go-build"
+ENV GOMODCACHE="/root/go/pkg/mod"
+
 # Copy source code to standardized location
 COPY . /rlenv/source/gobgp
+
+# Make /rlenv/source world-writable for unprivileged users
+RUN chmod -R 777 /rlenv/source
 
 # Set working directory
 WORKDIR /rlenv/source/gobgp
@@ -38,6 +49,16 @@ RUN if [ -f pkg/packet/bgp/bgp_test.go_fuzz.go ]; then \
 
 # Rebuild after fixing the reflect import issue
 RUN compile_native_go_fuzzer $PWD/pkg/packet/bgp FuzzParseBGPMessage fuzz_parse_bgp_message
+
+# Make /out directory world-writable for unprivileged users
+RUN chmod -R 777 /out
+
+# Make Go cache directories accessible to all users (for rebuilds without network)
+RUN chmod -R 777 /root/.cache 2>/dev/null || true
+
+# Make /root directory and Go installation accessible to all users
+RUN chmod 777 /root && \
+    chmod -R 777 /root/.go /root/go 2>/dev/null || true
 
 # Copy rlenv directory (contains test data and scripts) - this should be last
 COPY rlenv /rlenv

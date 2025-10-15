@@ -7,6 +7,15 @@ set -euo pipefail
 # Original image: ghcr.io/mayhemheroes/gobgp:v3.34.0
 # Git revision: e2ae6daf0ba28a900041fe9b0329e8b1fc67fde9
 
+# Ensure Go toolchain is in PATH (for non-root users)
+export PATH="/root/.go/bin:/root/go/bin:${PATH}"
+export GOPATH="${GOPATH:-/root/go}"
+# Use the Go cache from the Docker build to avoid network access
+export GOCACHE="/root/.cache/go-build"
+export GOMODCACHE="/root/go/pkg/mod"
+# Disable VCS stamping to avoid Git errors in Docker
+export GOFLAGS="${GOFLAGS:-} -buildvcs=false"
+
 # Change to the source directory
 cd /rlenv/source/gobgp
 rm -f *.a /out/fuzz_parse_bgp_message
@@ -32,5 +41,8 @@ if [ ! -f /out/fuzz_parse_bgp_message ]; then
     echo "Error: Build artifact not found at /out/fuzz_parse_bgp_message"
     exit 1
 fi
+
+# Ensure the output file is world-readable, writable, and executable for unprivileged users
+chmod 777 /out/fuzz_parse_bgp_message
 
 echo "Build completed successfully: /out/fuzz_parse_bgp_message"
