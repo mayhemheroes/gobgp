@@ -8,7 +8,10 @@ set -euo pipefail
 # Git revision: e2ae6daf0ba28a900041fe9b0329e8b1fc67fde9
 
 # Ensure Go toolchain is in PATH (for non-root users)
+# Remove /rlenv/bin from PATH if present
 export PATH="/root/.go/bin:/root/go/bin:${PATH}"
+export PATH="${PATH//\/rlenv\/bin:/}"
+export PATH="${PATH//\/rlenv\/bin/}"
 export GOPATH="${GOPATH:-/root/go}"
 # Use the Go cache from the Docker build to avoid network access
 export GOCACHE="/root/.cache/go-build"
