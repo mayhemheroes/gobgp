@@ -1,5 +1,9 @@
 FROM gcr.io/oss-fuzz-base/base-builder-go
 
+# Install jq for validation and grep for compile_native_go_fuzzer (OSS-Fuzz base uses Debian/Ubuntu)
+# Note: OSS-Fuzz base may have BusyBox grep, but compile_native_go_fuzzer needs GNU grep
+RUN apt-get update && apt-get install -y jq grep && rm -rf /var/lib/apt/lists/*
+
 # Install any additional dependencies
 # (base-builder-go already includes Go, libFuzzer, and standard build tools)
 
