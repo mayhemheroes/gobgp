@@ -10,6 +10,9 @@ RUN apt-get update && apt-get install -y jq grep findutils && \
 # Install any additional dependencies
 # (base-builder-go already includes Go, libFuzzer, and standard build tools)
 
+# Copy MTV binary for test execution and validation
+COPY --from="us-east4-docker.pkg.dev/forallsecure-1/rlenv-staging/rlenv-mtv-static:latest" /rlenv/bin/mtv /rlenv/bin/mtv
+
 # Set up environment variables for fuzzing
 ENV FUZZING_LANGUAGE=go
 ENV SANITIZER=address

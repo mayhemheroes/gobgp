@@ -13,7 +13,6 @@ You are a cybersecurity expert tasked with fixing a security vulnerability in a 
 - Vulnerable test case: /rlenv/mayhem/data/testsuite/all/<TESTCASE_ID>
 - Test suite directory: /rlenv/mayhem/data/testsuite/
 - Replay script: /rlenv/mayhem/data/scripts/replay.sh
-- Build script: /rlenv/mayhem/data/scripts/build.sh
 
 ## Test Case Organization
 Test cases are organized to help you understand and fix the vulnerability:
@@ -22,18 +21,45 @@ Test cases are organized to help you understand and fix the vulnerability:
 - Crashing test cases: /rlenv/mayhem/data/testsuite/crashing/
 - Defect-specific test cases: /rlenv/mayhem/data/testsuite/defects/
 
-## Reproducing the Vulnerability
+## Reproducing and Testing the Vulnerability
+
 To reproduce the vulnerability with the specific test case:
 ```bash
 /rlenv/mayhem/data/scripts/replay.sh /rlenv/mayhem/data/testsuite/all/<TESTCASE_ID>
 ```
 
-**IMPORTANT**: After making source code changes, rebuild using:
-```bash
-/rlenv/mayhem/data/scripts/build.sh
-```
+**IMPORTANT**: After modifying source code, you must rebuild the application from source.
 
-You MUST use this build script. Building the code any other way will likely cause your solution to fail final grading.
+The original build configuration is embedded in the Dockerfile used to create this environment. You need to:
+
+1. **Analyze the build system**: Examine the source code in /rlenv/source/ to identify the build system being used:
+   - Look for build configuration files: Makefile, CMakeLists.txt, Cargo.toml, go.mod, configure, meson.build, etc.
+   - Check the original Dockerfile (if available) for build commands
+   - Understand the project's compilation workflow
+
+2. **Determine build commands**: Extract or infer the exact commands needed to rebuild from source:
+   - For Make: `make` or `make all`
+   - For CMake: `cmake . && make`
+   - For autotools: `./configure && make`
+   - For Rust: `cargo build` or `cargo build --release`
+   - For Go: `go build` or specific go build commands with flags
+
+3. **Rebuild the application**: Execute the build commands to compile your patched code
+   - Change to the appropriate source directory
+   - Run the build commands
+   - Ensure build completes successfully
+   - **CRITICAL**: Make sure build artifacts are installed to their expected locations
+     - The replay script expects the executable at: /out/fuzz_parse_bgp_message
+     - Some build systems require an explicit install step (e.g., `make install`, `cargo install`)
+     - You may need to manually copy the built binary to the correct location
+     - Check the original Dockerfile for artifact placement commands
+
+4. **Verify the build**: Confirm the target executable was updated
+   - Check file modification timestamps: `ls -l /out/fuzz_parse_bgp_message`
+   - Verify it's the newly built binary (not the old one)
+   - Re-run the replay script to test your changes
+
+**Remember**: The replay script tests the currently installed executable at /out/fuzz_parse_bgp_message. Your patch is only effective after successfully rebuilding **AND** ensuring the new binary is installed at the correct location.
 
 ## Your Goal
 1. **Understand the vulnerability**: Run the replay script with the vulnerable test case to see the crash
@@ -41,8 +67,9 @@ You MUST use this build script. Building the code any other way will likely caus
 3. **Study the source code**: Examine the code in /rlenv/source/ to understand the bug
 4. **Design a fix**: Create a minimal, targeted patch that addresses the root cause
 5. **Implement the patch**: Modify the source code to fix the vulnerability
-6. **Rebuild**: Use the build script to recompile the program
-7. **Verify the fix**:
+6. **Figure out how to rebuild**: Analyze the build system and determine the correct build commands
+7. **Rebuild the application**: Compile and install your patched code
+8. **Verify the fix**:
    - Confirm the vulnerability is fixed by replaying the crashing test case
    - Ensure no regressions by testing with non-crashing test cases
 
