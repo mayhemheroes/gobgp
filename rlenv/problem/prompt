@@ -12,7 +12,6 @@ You are a cybersecurity expert tasked with fixing a security vulnerability in a 
 - Source code repository: /rlenv/source/
 - Vulnerable test case: /rlenv/mayhem/data/testsuite/all/<TESTCASE_ID>
 - Test suite directory: /rlenv/mayhem/data/testsuite/
-- Replay script: /rlenv/mayhem/data/scripts/replay.sh
 
 ## Test Case Organization
 Test cases are organized to help you understand and fix the vulnerability:
@@ -23,46 +22,54 @@ Test cases are organized to help you understand and fix the vulnerability:
 
 ## Reproducing and Testing the Vulnerability
 
-To reproduce the vulnerability with the specific test case:
-```bash
-/rlenv/mayhem/data/scripts/replay.sh /rlenv/mayhem/data/testsuite/all/<TESTCASE_ID>
+To reproduce the vulnerability with the specific test case, use the `replay` MCP tool:
+```python
+replay(testcase="/rlenv/mayhem/data/testsuite/all/<TESTCASE_ID>")
 ```
 
-**IMPORTANT**: After modifying source code, you must rebuild the application from source.
+This tool executes the target program with the test case and provides detailed crash information including sanitizer output, stacktraces, and crash type detection.
 
-The original build configuration is embedded in the Dockerfile used to create this environment. You need to:
+**IMPORTANT**: After modifying source code, you must rebuild the application from source. You will need to:
 
 1. **Analyze the build system**: Examine the source code in /rlenv/source/ to identify the build system being used:
-   - Look for build configuration files: Makefile, CMakeLists.txt, Cargo.toml, go.mod, configure, meson.build, etc.
-   - Check the original Dockerfile (if available) for build commands
-   - Understand the project's compilation workflow
+   - Look for build configuration files: Makefile, CMakeLists.txt, Cargo.toml, go.mod, configure, meson.build, package.json, build.gradle, pom.xml, etc.
+   - Understand the project's compilation workflow and dependencies
+   - Identify any build tool requirements (make, cmake, cargo, npm, maven, gradle, etc.)
 
-2. **Determine build commands**: Extract or infer the exact commands needed to rebuild from source:
-   - For Make: `make` or `make all`
-   - For CMake: `cmake . && make`
-   - For autotools: `./configure && make`
+2. **Determine build commands**: Based on the build system, figure out the commands needed to rebuild from source:
+   - For Make: Typically `make` or `make all`
+   - For CMake: Usually `cmake . && make` or `mkdir build && cd build && cmake .. && make`
+   - For autotools: Often `./configure && make` or `autoreconf -i && ./configure && make`
    - For Rust: `cargo build` or `cargo build --release`
-   - For Go: `go build` or specific go build commands with flags
+   - For Go: `go build` with appropriate flags and package paths
+   - For Node.js: `npm install && npm run build` or similar
+   - For Java (Maven): `mvn compile` or `mvn package`
+   - For Java (Gradle): `gradle build` or `./gradlew build`
 
-3. **Rebuild the application**: Execute the build commands to compile your patched code
+3. **Install dependencies**: Many projects require build-time dependencies to be installed first:
+   - Check for package manager files (package.json, requirements.txt, go.mod, Cargo.toml)
+   - Look for dependency installation scripts or instructions in README files
+   - You may need to install system libraries, compilers, or language-specific packages
+
+4. **Rebuild the application**: Execute the build commands to compile your patched code:
    - Change to the appropriate source directory
    - Run the build commands
-   - Ensure build completes successfully
+   - Ensure build completes successfully without errors
    - **CRITICAL**: Make sure build artifacts are installed to their expected locations
-     - The replay script expects the executable at: /out/fuzz_parse_bgp_message
-     - Some build systems require an explicit install step (e.g., `make install`, `cargo install`)
+     - The replay tool expects the executable at: /out/fuzz_parse_bgp_message
+     - Some build systems require an explicit install step (e.g., `make install`, `cargo install --path .`)
      - You may need to manually copy the built binary to the correct location
-     - Check the original Dockerfile for artifact placement commands
+     - The target executable path tells you where the final binary must be placed
 
-4. **Verify the build**: Confirm the target executable was updated
+5. **Verify the build**: Confirm the target executable was updated:
    - Check file modification timestamps: `ls -l /out/fuzz_parse_bgp_message`
    - Verify it's the newly built binary (not the old one)
-   - Re-run the replay script to test your changes
+   - Re-run the replay tool to test your changes
 
-**Remember**: The replay script tests the currently installed executable at /out/fuzz_parse_bgp_message. Your patch is only effective after successfully rebuilding **AND** ensuring the new binary is installed at the correct location.
+**Remember**: The replay tool tests the currently installed executable at /out/fuzz_parse_bgp_message. Your patch is only effective after successfully rebuilding **AND** ensuring the new binary is installed at the correct location.
 
 ## Your Goal
-1. **Understand the vulnerability**: Run the replay script with the vulnerable test case to see the crash
+1. **Understand the vulnerability**: Use the replay tool with the vulnerable test case to see the crash
 2. **Analyze the root cause**: Use the crash backtrace and ASAN/UBSAN output to identify the vulnerable code path
 3. **Study the source code**: Examine the code in /rlenv/source/ to understand the bug
 4. **Design a fix**: Create a minimal, targeted patch that addresses the root cause
@@ -70,7 +77,7 @@ The original build configuration is embedded in the Dockerfile used to create th
 6. **Figure out how to rebuild**: Analyze the build system and determine the correct build commands
 7. **Rebuild the application**: Compile and install your patched code
 8. **Verify the fix**:
-   - Confirm the vulnerability is fixed by replaying the crashing test case
+   - Confirm the vulnerability is fixed by using the replay tool with the crashing test case
    - Ensure no regressions by testing with non-crashing test cases
 
 ## Success Criteria
