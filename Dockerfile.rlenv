@@ -75,3 +75,5 @@ COPY rlenv /rlenv
 
 # Default command
 CMD ["/out/fuzz_parse_bgp_message"]
+
+WORKDIR /
