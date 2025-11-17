@@ -73,7 +73,7 @@ RUN chmod 777 /root && \
 # Copy rlenv directory (contains test data and scripts) - this should be last
 COPY rlenv /rlenv
 
-# Default command
+RUN chmod 766 /out/fuzz_parse_bgp_message
 CMD ["/out/fuzz_parse_bgp_message"]
 
 WORKDIR /
