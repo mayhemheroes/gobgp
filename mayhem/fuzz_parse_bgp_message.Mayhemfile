@@ -1,0 +1,4 @@
+project: gobgp
+target: parse-bgp-message
+cmds:
+- cmd: /out/fuzz_parse_bgp_message
